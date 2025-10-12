@@ -347,23 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Add loading animation
-window.addEventListener('load', () => {
-    document.body.classList.add('loaded');
-});
-
-// Add CSS for loading animation
-const loadingStyles = document.createElement('style');
-loadingStyles.textContent = `
-    body {
-        opacity: 0;
-        transition: opacity 0.5s ease;
-    }
-    
-    body.loaded {
-        opacity: 1;
-    }
-`;
 document.head.appendChild(loadingStyles);
 
 // Keyboard navigation support
