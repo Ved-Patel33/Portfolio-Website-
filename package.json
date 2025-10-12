@@ -1,0 +1,33 @@
+{
+  "name": "ved-patel-portfolio",
+  "version": "1.0.0",
+  "description": "Personal portfolio website for Ved Patel - Engineering Student",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "serve": "python -m http.server 8000",
+    "dev": "python -m http.server 8000"
+  },
+  "keywords": [
+    "portfolio",
+    "engineering",
+    "student",
+    "website",
+    "responsive",
+    "html",
+    "css",
+    "javascript"
+  ],
+  "author": "Ved Patel",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vedpatel/portfolio-website.git"
+  },
+  "homepage": "https://vedpatel.github.io/portfolio-website",
+  "devDependencies": {},
+  "dependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
