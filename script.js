@@ -370,24 +370,7 @@ navLinks.forEach(link => {
     });
 });
 
-// Add smooth transitions between sections
-const style = document.createElement('style');
-style.textContent = `
-    .section {
-        transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-    
-    .section:not(.active) {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    
-    .section.active {
-        opacity: 1;
-        transform: translateY(0);
-    }
-`;
-document.head.appendChild(style);
+
 
 /* GUI Functions */
 
