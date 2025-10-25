@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-document.head.appendChild(loadingStyles);
+// Loading styles removed - not needed
 
 // Keyboard navigation support
 document.addEventListener('keydown', (e) => {
@@ -428,9 +428,7 @@ function openGoogleDrive(folderName) {
 
 // Contact functions
 function openEmail() {
-    function openEmail() {
-        window.location.href = 'mailto:vedip@outlook.com';
-}
+    window.location.href = 'mailto:vedip@outlook.com';
 }
 
 function openLinkedIn() {

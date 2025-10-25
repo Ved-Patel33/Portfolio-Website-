@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rocket Ground Support Equipment - Configurable Control Panel</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #00ff88;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #00ff88;
+            font-size: 1.8rem;
+            text-shadow: 0 0 10px #00ff88;
+        }
+
+        .config-toggle {
+            background: linear-gradient(45deg, #4caf50, #66bb6a);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .config-toggle:hover {
+            background: linear-gradient(45deg, #388e3c, #4caf50);
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto 1fr;
+            gap: 1rem;
+            padding: 1rem;
+            height: calc(100vh - 80px);
+        }
+
+        .config-panel {
+            position: fixed;
+            top: 0;
+            left: -400px;
+            width: 400px;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            border-right: 2px solid #00ff88;
+            padding: 2rem;
+            transition: left 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .config-panel.open {
+            left: 0;
+        }
+
+        .config-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        .config-overlay.show {
+            display: block;
+        }
+
+        .config-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+
+        .config-section h3 {
+            color: #00ff88;
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #aaa;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .form-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 0.5rem;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-panel h2 {
+            color: #00ff88;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .control-btn {
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-ready {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            color: white;
+        }
+
+        .btn-ready:hover {
+            background: linear-gradient(45deg, #ff5252, #ff7979);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-set {
+            background: linear-gradient(45deg, #ffa726, #ffb74d);
+            color: white;
+        }
+
+        .btn-set:hover {
+            background: linear-gradient(45deg, #ff9800, #ffa726);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 167, 38, 0.4);
+        }
+
+        .btn-launch {
+            background: linear-gradient(45deg, #4caf50, #66bb6a);
+            color: white;
+        }
+
+        .btn-launch:hover {
+            background: linear-gradient(45deg, #388e3c, #4caf50);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-emergency {
+            background: linear-gradient(45deg, #f44336, #ef5350);
+            color: white;
+            grid-column: 1 / -1;
+            animation: emergency-pulse 1s infinite;
+        }
+
+        @keyframes emergency-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .data-display {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .data-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.8rem;
+            border-radius: 5px;
+            border-left: 3px solid #00ff88;
+        }
+
+        .data-label {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 0.3rem;
+        }
+
+        .data-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            grid-column: 1 / -1;
+        }
+
+        .chart-title {
+            color: #00ff88;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .recent-data {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+
+        .data-table th {
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+        }
+
+        .hardware-controls {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .control-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .control-toggle {
+            width: 50px;
+            height: 25px;
+            background: #333;
+            border-radius: 25px;
+            position: relative;
+            cursor: pointer;
+            margin: 0.5rem auto;
+            transition: all 0.3s ease;
+        }
+
+        .control-toggle.active {
+            background: #00ff88;
+        }
+
+        .control-toggle::after {
+            content: '';
+            position: absolute;
+            width: 21px;
+            height: 21px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .control-toggle.active::after {
+            transform: translateX(25px);
+        }
+
+        .control-slider {
+            width: 100%;
+            margin: 0.5rem 0;
+        }
+
+        .connection-status {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-connected { background-color: #00ff88; }
+        .status-disconnected { background-color: #ff4444; }
+        .status-warning { background-color: #ffaa00; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 2rem;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .alert-success { background: #4caf50; }
+        .alert-warning { background: #ff9800; }
+        .alert-error { background: #f44336; }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        @media (max-width: 1200px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Rocket Ground Support Equipment</h1>
+        <button class="config-toggle" id="configToggle">⚙️ Configure</button>
+    </div>
+
+    <!-- Configuration Panel -->
+    <div class="config-overlay" id="configOverlay"></div>
+    <div class="config-panel" id="configPanel">
+        <h2 style="color: #00ff88; margin-bottom: 2rem;">System Configuration</h2>
+        
+        <!-- Communication Settings -->
+        <div class="config-section">
+            <h3>Communication</h3>
+            <div class="form-group">
+                <label for="commType">Communication Type:</label>
+                <select id="commType">
+                    <option value="simulation">Simulation Mode</option>
+                    <option value="serial">Serial Port</option>
+                    <option value="websocket">WebSocket</option>
+                    <option value="tcp">TCP Socket</option>
+                    <option value="udp">UDP</option>
+                </select>
+            </div>
+            <div class="form-group" id="serialConfig" style="display: none;">
+                <label for="serialPort">Serial Port:</label>
+                <select id="serialPort">
+                    <option value="">Select Port...</option>
+                </select>
+            </div>
+            <div class="form-group" id="networkConfig" style="display: none;">
+                <label for="hostAddress">Host Address:</label>
+                <input type="text" id="hostAddress" placeholder="localhost" value="localhost">
+                <label for="portNumber">Port:</label>
+                <input type="number" id="portNumber" placeholder="8080" value="8080">
+            </div>
+        </div>
+
+        <!-- Hardware Configuration -->
+        <div class="config-section">
+            <h3>Hardware Setup</h3>
+            <div class="form-group">
+                <label for="hardwareType">Hardware Type:</label>
+                <select id="hardwareType">
+                    <option value="arduino">Arduino Uno/Mega</option>
+                    <option value="raspberry">Raspberry Pi</option>
+                    <option value="custom">Custom Hardware</option>
+                    <option value="simulation">Simulation Only</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="baudRate">Baud Rate (Serial):</label>
+                <select id="baudRate">
+                    <option value="9600">9600</option>
+                    <option value="19200">19200</option>
+                    <option value="38400">38400</option>
+                    <option value="57600">57600</option>
+                    <option value="115200">115200</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Sensor Configuration -->
+        <div class="config-section">
+            <h3>Sensor Configuration</h3>
+            <div class="checkbox-group">
+                <input type="checkbox" id="sensorPressure" checked>
+                <label for="sensorPressure">Pressure Sensor</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="sensorTemperature" checked>
+                <label for="sensorTemperature">Temperature Sensor</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="sensorFlow" checked>
+                <label for="sensorFlow">Flow Rate Sensor</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="sensorVoltage" checked>
+                <label for="sensorVoltage">Voltage Sensor</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="sensorLoadCell" checked>
+                <label for="sensorLoadCell">Load Cell</label>
+            </div>
+        </div>
+
+        <!-- Control Configuration -->
+        <div class="config-section">
+            <h3>Control Configuration</h3>
+            <div class="checkbox-group">
+                <input type="checkbox" id="controlValves" checked>
+                <label for="controlValves">Valve Controls</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="controlServos" checked>
+                <label for="controlServos">Servo Controls</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="controlEmergency" checked>
+                <label for="controlEmergency">Emergency Stop</label>
+            </div>
+        </div>
+
+        <!-- Data Configuration -->
+        <div class="config-section">
+            <h3>Data Settings</h3>
+            <div class="form-group">
+                <label for="updateInterval">Update Interval (ms):</label>
+                <input type="number" id="updateInterval" value="1000" min="100" max="10000">
+            </div>
+            <div class="form-group">
+                <label for="maxDataPoints">Max Data Points:</label>
+                <input type="number" id="maxDataPoints" value="100" min="10" max="1000">
+            </div>
+        </div>
+
+        <button class="config-toggle" onclick="saveConfiguration()" style="width: 100%; margin-top: 1rem;">
+            💾 Save Configuration
+        </button>
+    </div>
+
+    <div class="main-container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h2>Mission Control</h2>
+            <div class="button-grid">
+                <button class="control-btn btn-ready" id="readyBtn">Ready</button>
+                <button class="control-btn btn-set" id="setBtn">Set</button>
+                <button class="control-btn btn-launch" id="launchBtn">Launch</button>
+                <button class="control-btn btn-emergency" id="emergencyBtn">EMERGENCY STOP</button>
+            </div>
+            
+            <div class="data-grid">
+                <div class="data-item">
+                    <div class="data-label">Mission Status</div>
+                    <div class="data-value" id="missionStatus">STANDBY</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">System Time</div>
+                    <div class="data-value" id="systemTime">--:--:--</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Uptime</div>
+                    <div class="data-value" id="uptime">00:00:00</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Data Points</div>
+                    <div class="data-value" id="dataPoints">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-time Data Display -->
+        <div class="data-display">
+            <h2>Live Data</h2>
+            <div class="data-grid" id="sensorDataGrid">
+                <!-- Dynamic sensor data will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Chart Display -->
+        <div class="chart-container">
+            <h2 class="chart-title">Real-time Data Visualization</h2>
+            <canvas id="dataChart" width="800" height="400"></canvas>
+        </div>
+
+        <!-- Recent Data Table -->
+        <div class="recent-data">
+            <h2>Recent Data Entries</h2>
+            <table class="data-table" id="recentDataTable">
+                <thead id="recentDataHeader">
+                    <tr>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody id="recentDataBody">
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Hardware Controls -->
+        <div class="hardware-controls" id="hardwareControls">
+            <h2>Hardware Control</h2>
+            <div class="control-grid" id="controlGrid">
+                <!-- Dynamic controls will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Connection Status -->
+        <div class="connection-status">
+            <h2>Connection Status</h2>
+            <div class="status-indicator">
+                <span>Data Source:</span>
+                <div class="status-dot status-disconnected" id="connectionStatus"></div>
+                <span id="connectionText">Disconnected</span>
+            </div>
+            <div class="data-grid">
+                <div class="data-item">
+                    <div class="data-label">Connection Type</div>
+                    <div class="data-value" id="connectionType">Simulation</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Last Update</div>
+                    <div class="data-value" id="lastUpdate">Never</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let chart = null;
+        let dataPoints = 0;
+        let startTime = Date.now();
+        let missionStatus = 'STANDBY';
+        let recentData = [];
+        let configuration = {
+            commType: 'simulation',
+            hardwareType: 'simulation',
+            sensors: ['pressure', 'temperature', 'flow', 'voltage', 'loadCell'],
+            controls: ['valves', 'servos', 'emergency'],
+            updateInterval: 1000,
+            maxDataPoints: 100
+        };
+        let dataSource = null;
+
+        // Initialize the application
+        function init() {
+            loadConfiguration();
+            setupChart();
+            setupEventListeners();
+            updateSystemTime();
+            setInterval(updateSystemTime, 1000);
+            setInterval(updateUptime, 1000);
+            initializeDataSource();
+            updateUI();
+        }
+
+        // Load configuration from localStorage
+        function loadConfiguration() {
+            const saved = localStorage.getItem('rocketGSEConfig');
+            if (saved) {
+                configuration = { ...configuration, ...JSON.parse(saved) };
+            }
+        }
+
+        // Save configuration to localStorage
+        function saveConfiguration() {
+            configuration = {
+                commType: document.getElementById('commType').value,
+                hardwareType: document.getElementById('hardwareType').value,
+                sensors: getSelectedSensors(),
+                controls: getSelectedControls(),
+                updateInterval: parseInt(document.getElementById('updateInterval').value),
+                maxDataPoints: parseInt(document.getElementById('maxDataPoints').value)
+            };
+            
+            localStorage.setItem('rocketGSEConfig', JSON.stringify(configuration));
+            updateUI();
+            initializeDataSource();
+            showAlert('Configuration saved successfully!', 'success');
+            closeConfigPanel();
+        }
+
+        // Get selected sensors
+        function getSelectedSensors() {
+            const sensors = [];
+            if (document.getElementById('sensorPressure').checked) sensors.push('pressure');
+            if (document.getElementById('sensorTemperature').checked) sensors.push('temperature');
+            if (document.getElementById('sensorFlow').checked) sensors.push('flow');
+            if (document.getElementById('sensorVoltage').checked) sensors.push('voltage');
+            if (document.getElementById('sensorLoadCell').checked) sensors.push('loadCell');
+            return sensors;
+        }
+
+        // Get selected controls
+        function getSelectedControls() {
+            const controls = [];
+            if (document.getElementById('controlValves').checked) controls.push('valves');
+            if (document.getElementById('controlServos').checked) controls.push('servos');
+            if (document.getElementById('controlEmergency').checked) controls.push('emergency');
+            return controls;
+        }
+
+        // Update UI based on configuration
+        function updateUI() {
+            // Update form values
+            document.getElementById('commType').value = configuration.commType;
+            document.getElementById('hardwareType').value = configuration.hardwareType;
+            document.getElementById('updateInterval').value = configuration.updateInterval;
+            document.getElementById('maxDataPoints').value = configuration.maxDataPoints;
+            
+            // Update sensor checkboxes
+            document.getElementById('sensorPressure').checked = configuration.sensors.includes('pressure');
+            document.getElementById('sensorTemperature').checked = configuration.sensors.includes('temperature');
+            document.getElementById('sensorFlow').checked = configuration.sensors.includes('flow');
+            document.getElementById('sensorVoltage').checked = configuration.sensors.includes('voltage');
+            document.getElementById('sensorLoadCell').checked = configuration.sensors.includes('loadCell');
+            
+            // Update control checkboxes
+            document.getElementById('controlValves').checked = configuration.controls.includes('valves');
+            document.getElementById('controlServos').checked = configuration.controls.includes('servos');
+            document.getElementById('controlEmergency').checked = configuration.controls.includes('emergency');
+            
+            // Update sensor display
+            updateSensorDisplay();
+            updateControlDisplay();
+        }
+
+        // Update sensor display based on configuration
+        function updateSensorDisplay() {
+            const grid = document.getElementById('sensorDataGrid');
+            grid.innerHTML = '';
+            
+            configuration.sensors.forEach(sensor => {
+                const item = document.createElement('div');
+                item.className = 'data-item';
+                item.innerHTML = `
+                    <div class="data-label">${sensor.charAt(0).toUpperCase() + sensor.slice(1)}</div>
+                    <div class="data-value" id="${sensor}Value">0.00</div>
+                `;
+                grid.appendChild(item);
+            });
+        }
+
+        // Update control display based on configuration
+        function updateControlDisplay() {
+            const grid = document.getElementById('controlGrid');
+            grid.innerHTML = '';
+            
+            if (configuration.controls.includes('valves')) {
+                const valveControls = ['Main Valve', 'Fuel Valve', 'Oxidizer Valve', 'Purge Valve'];
+                valveControls.forEach(valve => {
+                    const item = document.createElement('div');
+                    item.className = 'control-item';
+                    const valveId = valve.toLowerCase().replace(' ', '');
+                    item.innerHTML = `
+                        <h3>${valve}</h3>
+                        <div class="control-toggle" id="${valveId}Toggle"></div>
+                        <span id="${valveId}Status">CLOSED</span>
+                    `;
+                    grid.appendChild(item);
+                });
+            }
+            
+            if (configuration.controls.includes('servos')) {
+                const servoControls = [
+                    { name: 'Gimbal X', id: 'gimbalX', min: -90, max: 90 },
+                    { name: 'Gimbal Y', id: 'gimbalY', min: -90, max: 90 },
+                    { name: 'Throttle', id: 'throttle', min: 0, max: 100 }
+                ];
+                
+                servoControls.forEach(servo => {
+                    const item = document.createElement('div');
+                    item.className = 'control-item';
+                    item.innerHTML = `
+                        <h3>${servo.name}</h3>
+                        <input type="range" class="control-slider" id="${servo.id}Slider" 
+                               min="${servo.min}" max="${servo.max}" value="0">
+                        <span id="${servo.id}Value">0</span>
+                    `;
+                    grid.appendChild(item);
+                });
+            }
+        }
+
+        // Initialize data source based on configuration
+        function initializeDataSource() {
+            if (dataSource) {
+                clearInterval(dataSource);
+            }
+            
+            switch (configuration.commType) {
+                case 'simulation':
+                    startSimulation();
+                    break;
+                case 'serial':
+                    initializeSerial();
+                    break;
+                case 'websocket':
+                    initializeWebSocket();
+                    break;
+                default:
+                    startSimulation();
+            }
+        }
+
+        // Start simulation mode
+        function startSimulation() {
+            document.getElementById('connectionType').textContent = 'Simulation';
+            document.getElementById('connectionStatus').className = 'status-dot status-connected';
+            document.getElementById('connectionText').textContent = 'Connected';
+            
+            dataSource = setInterval(() => {
+                const data = generateSimulatedData();
+                updateDataDisplay(data);
+                updateChart(data);
+                updateRecentData(data);
+            }, configuration.updateInterval);
+        }
+
+        // Generate simulated data
+        function generateSimulatedData() {
+            const data = { timestamp: new Date().toISOString() };
+            
+            configuration.sensors.forEach(sensor => {
+                switch (sensor) {
+                    case 'pressure':
+                        data.pressure = (Math.random() * 100 + 50).toFixed(2);
+                        break;
+                    case 'temperature':
+                        data.temperature = (Math.random() * 50 + 20).toFixed(2);
+                        break;
+                    case 'flow':
+                        data.flow = (Math.random() * 20 + 5).toFixed(2);
+                        break;
+                    case 'voltage':
+                        data.voltage = (Math.random() * 5 + 12).toFixed(2);
+                        break;
+                    case 'loadCell':
+                        data.loadCell = (Math.random() * 1000 + 100).toFixed(2);
+                        break;
+                }
+            });
+            
+            return data;
+        }
+
+        // Initialize serial communication
+        function initializeSerial() {
+            document.getElementById('connectionType').textContent = 'Serial';
+            // Serial communication would be implemented here
+            showAlert('Serial communication not yet implemented', 'warning');
+            startSimulation();
+        }
+
+        // Initialize WebSocket communication
+        function initializeWebSocket() {
+            document.getElementById('connectionType').textContent = 'WebSocket';
+            // WebSocket communication would be implemented here
+            showAlert('WebSocket communication not yet implemented', 'warning');
+            startSimulation();
+        }
+
+        // Setup Chart.js for real-time data visualization
+        function setupChart() {
+            const ctx = document.getElementById('dataChart').getContext('2d');
+            const datasets = [];
+            
+            configuration.sensors.forEach((sensor, index) => {
+                const colors = ['#00ff88', '#ff6b6b', '#4ecdc4', '#ffe66d', '#ff9ff3'];
+                datasets.push({
+                    label: sensor.charAt(0).toUpperCase() + sensor.slice(1),
+                    data: [],
+                    borderColor: colors[index % colors.length],
+                    backgroundColor: colors[index % colors.length] + '20',
+                    tension: 0.4
+                });
+            });
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#ffffff' }
+                        },
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#ffffff' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#ffffff' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Configuration panel
+            document.getElementById('configToggle').addEventListener('click', toggleConfigPanel);
+            document.getElementById('configOverlay').addEventListener('click', closeConfigPanel);
+            
+            // Communication type change
+            document.getElementById('commType').addEventListener('change', updateCommConfig);
+            
+            // Control buttons
+            document.getElementById('readyBtn').addEventListener('click', () => setMissionStatus('READY'));
+            document.getElementById('setBtn').addEventListener('click', () => setMissionStatus('SET'));
+            document.getElementById('launchBtn').addEventListener('click', () => setMissionStatus('LAUNCH'));
+            document.getElementById('emergencyBtn').addEventListener('click', emergencyStop);
+        }
+
+        // Toggle configuration panel
+        function toggleConfigPanel() {
+            const panel = document.getElementById('configPanel');
+            const overlay = document.getElementById('configOverlay');
+            
+            panel.classList.toggle('open');
+            overlay.classList.toggle('show');
+        }
+
+        // Close configuration panel
+        function closeConfigPanel() {
+            const panel = document.getElementById('configPanel');
+            const overlay = document.getElementById('configOverlay');
+            
+            panel.classList.remove('open');
+            overlay.classList.remove('show');
+        }
+
+        // Update communication configuration display
+        function updateCommConfig() {
+            const commType = document.getElementById('commType').value;
+            const serialConfig = document.getElementById('serialConfig');
+            const networkConfig = document.getElementById('networkConfig');
+            
+            serialConfig.style.display = commType === 'serial' ? 'block' : 'none';
+            networkConfig.style.display = ['websocket', 'tcp', 'udp'].includes(commType) ? 'block' : 'none';
+        }
+
+        // Update data display
+        function updateDataDisplay(data) {
+            configuration.sensors.forEach(sensor => {
+                const element = document.getElementById(sensor + 'Value');
+                if (element && data[sensor] !== undefined) {
+                    element.textContent = data[sensor];
+                }
+            });
+            
+            document.getElementById('dataPoints').textContent = ++dataPoints;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+
+        // Update chart with new data
+        function updateChart(data) {
+            const now = new Date().toLocaleTimeString();
+            
+            chart.data.labels.push(now);
+            
+            configuration.sensors.forEach((sensor, index) => {
+                if (data[sensor] !== undefined) {
+                    chart.data.datasets[index].data.push(parseFloat(data[sensor]));
+                }
+            });
+
+            // Keep only last N data points
+            if (chart.data.labels.length > configuration.maxDataPoints) {
+                chart.data.labels.shift();
+                chart.data.datasets.forEach(dataset => dataset.data.shift());
+            }
+
+            chart.update('none');
+        }
+
+        // Update recent data table
+        function updateRecentData(data) {
+            recentData.unshift({
+                time: new Date().toLocaleTimeString(),
+                ...data
+            });
+
+            // Keep only last 5 entries
+            if (recentData.length > 5) {
+                recentData.pop();
+            }
+
+            updateRecentDataTable();
+        }
+
+        // Update recent data table HTML
+        function updateRecentDataTable() {
+            const header = document.getElementById('recentDataHeader');
+            const tbody = document.getElementById('recentDataBody');
+            
+            // Update header
+            header.innerHTML = '<tr><th>Time</th>' + 
+                configuration.sensors.map(sensor => 
+                    `<th>${sensor.charAt(0).toUpperCase() + sensor.slice(1)}</th>`
+                ).join('') + '</tr>';
+            
+            // Update body
+            tbody.innerHTML = '';
+            recentData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + row.time + '</td>' +
+                    configuration.sensors.map(sensor => 
+                        `<td>${row[sensor] || 'N/A'}</td>`
+                    ).join('');
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Set mission status
+        function setMissionStatus(status) {
+            missionStatus = status;
+            document.getElementById('missionStatus').textContent = status;
+            showAlert(`Mission status: ${status}`, 'success');
+        }
+
+        // Emergency stop
+        function emergencyStop() {
+            missionStatus = 'EMERGENCY';
+            document.getElementById('missionStatus').textContent = 'EMERGENCY STOP';
+            document.getElementById('missionStatus').style.color = '#ff4444';
+            showAlert('EMERGENCY STOP ACTIVATED!', 'error');
+        }
+
+        // Update system time
+        function updateSystemTime() {
+            const now = new Date();
+            document.getElementById('systemTime').textContent = now.toLocaleTimeString();
+        }
+
+        // Update uptime
+        function updateUptime() {
+            const uptime = Date.now() - startTime;
+            const hours = Math.floor(uptime / 3600000);
+            const minutes = Math.floor((uptime % 3600000) / 60000);
+            const seconds = Math.floor((uptime % 60000) / 1000);
+            
+            document.getElementById('uptime').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Show alert message
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            document.body.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 3000);
+        }
+
+        // Initialize the application when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
+

@@ -1,333 +1,223 @@
-<<<<<<< HEAD
-# Ved Patel - Engineering Portfolio
+# 🚀 Rocket Ground Support Equipment Control System
 
-A modern, responsive portfolio website showcasing academic, professional, and project experience for an engineering student.
+A comprehensive interactive GUI for Rocket Ground Support Equipment with real-time data monitoring, valve control, servo management, and load cell visualization.
 
 ## Features
 
-- **Responsive Design**: Optimized for desktop, tablet, and mobile devices
-- **Modern UI**: Clean, professional design with dark blue, white, and grey color scheme
-- **Interactive Navigation**: Smooth tab switching without page refreshes
-- **Project Showcase**: Organized by categories (School, Team, Independent projects)
-- **Experience Timeline**: Professional co-op and internship experience
-- **Competitions**: Hackathons and technical competitions
-- **Contact Form**: Interactive contact form with validation
-- **Smooth Animations**: Hover effects and transitions throughout
+### 🎛️ Control Panel
+- **Mission Control**: Ready/Set/Launch sequence with status indicators
+- **Emergency Stop**: Immediate system shutdown capability
+- **Real-time Status**: Connection status, uptime, and system health
 
-## Technologies Used
+### 📊 Data Visualization
+- **Live Charts**: Real-time graphing of pressure, temperature, flow rate, and voltage
+- **Data Tables**: Recent data entries with timestamps
+- **Load Cell Display**: Current, maximum, and minimum load readings
 
-- **HTML5**: Semantic markup and accessibility
-- **CSS3**: Modern styling with Flexbox and Grid
-- **JavaScript (ES6+)**: Interactive functionality and animations
-- **Font Awesome**: Icons for social links and UI elements
-- **Google Fonts**: Inter font family for clean typography
+### 🔧 Hardware Control
+- **Valve Control**: Main, Fuel, Oxidizer, and Purge valves with toggle switches
+- **Servo Control**: Gimbal X/Y positioning and throttle control
+- **Sensor Monitoring**: Pressure, temperature, flow rate, voltage, and load cell data
 
-## Sections
+### 🔌 Communication
+- **Arduino Integration**: Serial and WebSocket communication
+- **Real-time Updates**: Live data streaming from hardware
+- **Command Interface**: Send control commands to Arduino
 
-### Home
-- Professional profile picture
-- Personal introduction and career summary
-- Social media links (LinkedIn, GitHub, Resume)
+## Quick Start
 
-### Projects
-- **School Projects**: Academic assignments and coursework
-- **Team Projects**: Collaborative development work
-- **Independent Projects**: Personal side projects
+### 1. Install Dependencies
 
-### Co-op Experience
-- Work terms and internships
-- Company names, positions, and durations
-- Key responsibilities and achievements
+```bash
+npm install
+```
 
-### Competitions
-- Hackathons and design challenges
-- Competition results and placements
-- Project descriptions and technologies used
+### 2. Start the Server
 
-### Contact
-- Direct communication links
-- Interactive contact form
-- Social media integration
+```bash
+npm start
+```
 
-## Deployment
+### 3. Open the GUI
 
-This portfolio is designed to be deployed on GitHub Pages with automatic updates.
+Navigate to `http://localhost:8080` in your web browser.
 
-### GitHub Pages Deployment
+## Hardware Setup
 
-1. **Create a GitHub Repository**:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial portfolio commit"
-   git branch -M main
-   git remote add origin https://github.com/yourusername/portfolio-website.git
-   git push -u origin main
-   ```
+### Arduino Requirements
+- Arduino Uno/Mega or compatible
+- Sensors: Pressure, Temperature, Flow, Voltage, Load Cell
+- Actuators: Valves (4x), Servos (3x)
+- Connections as defined in `arduino-sketch.ino`
 
-2. **Enable GitHub Pages**:
-   - Go to repository Settings
-   - Scroll to "Pages" section
-   - Select "Deploy from a branch"
-   - Choose "main" branch and "/ (root)" folder
-   - Click "Save"
+### Pin Configuration
+```cpp
+// Sensor pins
+const int PRESSURE_PIN = A0;
+const int TEMPERATURE_PIN = A1;
+const int FLOW_PIN = A2;
+const int VOLTAGE_PIN = A3;
+const int LOAD_CELL_PIN = A4;
 
-3. **Custom Domain (Optional)**:
-   - Add a `CNAME` file with your domain name
-   - Configure DNS settings with your domain provider
+// Valve control pins
+const int MAIN_VALVE_PIN = 2;
+const int FUEL_VALVE_PIN = 3;
+const int OXIDIZER_VALVE_PIN = 4;
+const int PURGE_VALVE_PIN = 5;
 
-### Vercel Deployment (Alternative)
-
-1. **Connect to Vercel**:
-   - Import your GitHub repository
-   - Vercel will automatically detect the static site
-   - Deploy with zero configuration
-
-2. **Custom Domain**:
-   - Add your domain in Vercel dashboard
-   - Configure DNS records
-
-## Customization
-
-### Personal Information
-Update the following in `index.html`:
-- Name and title
-- Profile description
-- Social media links
-- Contact information
-- Profile image URL
-
-### Projects
-Add your projects in the respective sections:
-- Update project titles and descriptions
-- Add GitHub repository links
-- Include demo links where applicable
-- Update technology stacks
-
-### Experience
-Modify the experience section:
-- Update company names and positions
-- Adjust dates and durations
-- Customize responsibilities and achievements
-
-### Styling
-Customize the appearance in `styles.css`:
-- Color scheme (CSS variables at the top)
-- Typography and spacing
-- Layout and responsive breakpoints
+// Servo control pins
+const int GIMBAL_X_PIN = 6;
+const int GIMBAL_Y_PIN = 7;
+const int THROTTLE_PIN = 8;
+```
 
 ## File Structure
 
 ```
-portfolio-website/
-├── index.html          # Main HTML file
-├── styles.css          # CSS styles and responsive design
-├── script.js           # JavaScript functionality
-├── README.md           # Project documentation
-└── resume.pdf          # Resume file (add your own)
+rocket-gse-control/
+├── rocket-gse-gui.html      # Main GUI interface
+├── arduino-interface.js      # Arduino communication layer
+├── server.js                 # Node.js backend server
+├── arduino-sketch.ino        # Arduino firmware
+├── package.json              # Node.js dependencies
+└── README.md                 # This file
 ```
 
-## Browser Support
+## Usage
 
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
-- Mobile browsers (iOS Safari, Chrome Mobile)
+### GUI Controls
 
-## Performance
+1. **Mission Sequence**:
+   - Click "Ready" to initialize the system
+   - Click "Set" to prepare for launch
+   - Click "Launch" to begin mission sequence
+   - Use "EMERGENCY STOP" for immediate shutdown
 
-- Optimized images and assets
-- Minimal external dependencies
-- Efficient CSS and JavaScript
-- Fast loading times
-- Mobile-optimized
+2. **Valve Control**:
+   - Toggle switches to open/close valves
+   - Visual indicators show current state
+   - Commands sent to Arduino in real-time
 
-## Accessibility
+3. **Servo Control**:
+   - Use sliders to control gimbal positioning
+   - Throttle control for engine management
+   - Real-time position feedback
 
-- Semantic HTML structure
-- Keyboard navigation support
-- Screen reader friendly
-- High contrast ratios
-- Focus indicators
+4. **Data Monitoring**:
+   - Live charts show sensor data trends
+   - Recent data table displays latest readings
+   - Load cell monitoring with min/max tracking
+
+### Arduino Communication
+
+The system supports multiple communication methods:
+
+1. **Serial Communication** (Primary):
+   - Direct USB connection to Arduino
+   - 9600 baud rate
+   - Command format: `TYPE:PARAM:VALUE`
+
+2. **WebSocket Communication** (Development):
+   - For testing without hardware
+   - Simulated data generation
+   - Remote monitoring capability
+
+### Command Protocol
+
+#### Valve Commands
+```
+VALVE:MAIN:OPEN
+VALVE:FUEL:CLOSE
+VALVE:OXIDIZER:OPEN
+VALVE:PURGE:CLOSE
+```
+
+#### Servo Commands
+```
+SERVO:GIMBALX:90
+SERVO:GIMBALY:45
+SERVO:THROTTLE:75
+```
+
+#### Emergency Commands
+```
+EMERGENCY:STOP
+```
+
+#### Status Commands
+```
+STATUS:READY
+STATUS:SET
+STATUS:LAUNCH
+```
+
+## Safety Features
+
+- **Emergency Stop**: Immediate system shutdown
+- **Safety Checks**: Pressure and temperature monitoring
+- **Valve Interlocks**: Prevents unsafe valve combinations
+- **Status Monitoring**: Real-time system health indicators
+
+## Development
+
+### Adding New Sensors
+
+1. Update Arduino sketch with new sensor pin
+2. Add sensor reading in `readSensors()` function
+3. Update GUI to display new sensor data
+4. Add chart visualization if needed
+
+### Adding New Controls
+
+1. Define new control in Arduino sketch
+2. Add command parsing in `processCommand()`
+3. Update GUI with new control interface
+4. Implement communication in `arduino-interface.js`
+
+### Customization
+
+- **Styling**: Modify CSS in the HTML file
+- **Layout**: Adjust grid structure for different screen sizes
+- **Data Format**: Change sensor data format in Arduino sketch
+- **Communication**: Modify protocol in `arduino-interface.js`
+
+## Troubleshooting
+
+### Connection Issues
+- Check Arduino is connected and powered
+- Verify correct COM port in server logs
+- Ensure Arduino sketch is uploaded and running
+
+### Data Not Updating
+- Check serial communication in Arduino IDE
+- Verify sensor connections
+- Check for JavaScript errors in browser console
+
+### GUI Not Loading
+- Ensure Node.js server is running
+- Check for port conflicts (default: 8080)
+- Verify all dependencies are installed
 
 ## License
 
-© 2025 Ved Patel. All rights reserved.
+MIT License - See LICENSE file for details.
 
-## Contact
+## Contributing
 
-- **Email**: ved.patel@email.com
-- **LinkedIn**: [linkedin.com/in/vedpatel](https://linkedin.com/in/vedpatel)
-- **GitHub**: [github.com/vedpatel](https://github.com/vedpatel)
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
----
+## Support
 
-*This portfolio website is built with modern web technologies and follows best practices for performance, accessibility, and user experience.*
-=======
-# Ved Patel - Engineering Portfolio
-
-A modern, responsive portfolio website showcasing academic, professional, and project experience for an engineering student.
-
-## Features
-
-- **Responsive Design**: Optimized for desktop, tablet, and mobile devices
-- **Modern UI**: Clean, professional design with dark blue, white, and grey color scheme
-- **Interactive Navigation**: Smooth tab switching without page refreshes
-- **Project Showcase**: Organized by categories (School, Team, Independent projects)
-- **Experience Timeline**: Professional co-op and internship experience
-- **Competitions**: Hackathons and technical competitions
-- **Contact Form**: Interactive contact form with validation
-- **Smooth Animations**: Hover effects and transitions throughout
-
-## Technologies Used
-
-- **HTML5**: Semantic markup and accessibility
-- **CSS3**: Modern styling with Flexbox and Grid
-- **JavaScript (ES6+)**: Interactive functionality and animations
-- **Font Awesome**: Icons for social links and UI elements
-- **Google Fonts**: Inter font family for clean typography
-
-## Sections
-
-### Home
-- Professional profile picture
-- Personal introduction and career summary
-- Social media links (LinkedIn, GitHub, Resume)
-
-### Projects
-- **School Projects**: Academic assignments and coursework
-- **Team Projects**: Collaborative development work
-- **Independent Projects**: Personal side projects
-
-### Co-op Experience
-- Work terms and internships
-- Company names, positions, and durations
-- Key responsibilities and achievements
-
-### Competitions
-- Hackathons and design challenges
-- Competition results and placements
-- Project descriptions and technologies used
-
-### Contact
-- Direct communication links
-- Interactive contact form
-- Social media integration
-
-## Deployment
-
-This portfolio is designed to be deployed on GitHub Pages with automatic updates.
-
-### GitHub Pages Deployment
-
-1. **Create a GitHub Repository**:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial portfolio commit"
-   git branch -M main
-   git remote add origin https://github.com/yourusername/portfolio-website.git
-   git push -u origin main
-   ```
-
-2. **Enable GitHub Pages**:
-   - Go to repository Settings
-   - Scroll to "Pages" section
-   - Select "Deploy from a branch"
-   - Choose "main" branch and "/ (root)" folder
-   - Click "Save"
-
-3. **Custom Domain (Optional)**:
-   - Add a `CNAME` file with your domain name
-   - Configure DNS settings with your domain provider
-
-### Vercel Deployment (Alternative)
-
-1. **Connect to Vercel**:
-   - Import your GitHub repository
-   - Vercel will automatically detect the static site
-   - Deploy with zero configuration
-
-2. **Custom Domain**:
-   - Add your domain in Vercel dashboard
-   - Configure DNS records
-
-## Customization
-
-### Personal Information
-Update the following in `index.html`:
-- Name and title
-- Profile description
-- Social media links
-- Contact information
-- Profile image URL
-
-### Projects
-Add your projects in the respective sections:
-- Update project titles and descriptions
-- Add GitHub repository links
-- Include demo links where applicable
-- Update technology stacks
-
-### Experience
-Modify the experience section:
-- Update company names and positions
-- Adjust dates and durations
-- Customize responsibilities and achievements
-
-### Styling
-Customize the appearance in `styles.css`:
-- Color scheme (CSS variables at the top)
-- Typography and spacing
-- Layout and responsive breakpoints
-
-## File Structure
-
-```
-portfolio-website/
-├── index.html          # Main HTML file
-├── styles.css          # CSS styles and responsive design
-├── script.js           # JavaScript functionality
-├── README.md           # Project documentation
-└── resume.pdf          # Resume file (add your own)
-```
-
-## Browser Support
-
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
-- Mobile browsers (iOS Safari, Chrome Mobile)
-
-## Performance
-
-- Optimized images and assets
-- Minimal external dependencies
-- Efficient CSS and JavaScript
-- Fast loading times
-- Mobile-optimized
-
-## Accessibility
-
-- Semantic HTML structure
-- Keyboard navigation support
-- Screen reader friendly
-- High contrast ratios
-- Focus indicators
-
-## License
-
-© 2025 Ved Patel. All rights reserved.
-
-## Contact
-
-- **Email**: ved.patel@email.com
-- **LinkedIn**: [linkedin.com/in/vedpatel](https://linkedin.com/in/vedpatel)
-- **GitHub**: [github.com/vedpatel](https://github.com/vedpatel)
+For issues and questions:
+- Check the troubleshooting section
+- Review Arduino serial monitor output
+- Check browser developer console for errors
+- Ensure all hardware connections are secure
 
 ---
 
-*This portfolio website is built with modern web technologies and follows best practices for performance, accessibility, and user experience.*
->>>>>>> aff721c4baae46490f4be3f57af8af23dbea495d
+**⚠️ Safety Warning**: This system controls potentially dangerous equipment. Always follow proper safety procedures and ensure all safety systems are in place before operation.

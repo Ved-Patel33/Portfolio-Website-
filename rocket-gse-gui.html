@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rocket Ground Support Equipment Control Panel</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/websocket@1.0.34/lib/websocket.min.js"></script>
+    <script src="arduino-interface.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #00ff88;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #00ff88;
+            font-size: 1.8rem;
+            text-shadow: 0 0 10px #00ff88;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-connected { background-color: #00ff88; }
+        .status-disconnected { background-color: #ff4444; }
+        .status-warning { background-color: #ffaa00; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto 1fr;
+            gap: 1rem;
+            padding: 1rem;
+            height: calc(100vh - 80px);
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-panel h2 {
+            color: #00ff88;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .control-btn {
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-ready {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            color: white;
+        }
+
+        .btn-ready:hover {
+            background: linear-gradient(45deg, #ff5252, #ff7979);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-set {
+            background: linear-gradient(45deg, #ffa726, #ffb74d);
+            color: white;
+        }
+
+        .btn-set:hover {
+            background: linear-gradient(45deg, #ff9800, #ffa726);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 167, 38, 0.4);
+        }
+
+        .btn-launch {
+            background: linear-gradient(45deg, #4caf50, #66bb6a);
+            color: white;
+        }
+
+        .btn-launch:hover {
+            background: linear-gradient(45deg, #388e3c, #4caf50);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-emergency {
+            background: linear-gradient(45deg, #f44336, #ef5350);
+            color: white;
+            grid-column: 1 / -1;
+            animation: emergency-pulse 1s infinite;
+        }
+
+        @keyframes emergency-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .data-display {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .data-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.8rem;
+            border-radius: 5px;
+            border-left: 3px solid #00ff88;
+        }
+
+        .data-label {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 0.3rem;
+        }
+
+        .data-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            grid-column: 1 / -1;
+        }
+
+        .chart-title {
+            color: #00ff88;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .recent-data {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+
+        .data-table th {
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+        }
+
+        .valve-controls {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .valve-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .valve-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .valve-toggle {
+            width: 50px;
+            height: 25px;
+            background: #333;
+            border-radius: 25px;
+            position: relative;
+            cursor: pointer;
+            margin: 0.5rem auto;
+            transition: all 0.3s ease;
+        }
+
+        .valve-toggle.active {
+            background: #00ff88;
+        }
+
+        .valve-toggle::after {
+            content: '';
+            position: absolute;
+            width: 21px;
+            height: 21px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .valve-toggle.active::after {
+            transform: translateX(25px);
+        }
+
+        .servo-controls {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .servo-slider {
+            width: 100%;
+            margin: 0.5rem 0;
+        }
+
+        .load-cell-display {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .load-cell-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00ff88;
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .unit {
+            font-size: 1rem;
+            color: #aaa;
+        }
+
+        .alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 2rem;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .alert-success { background: #4caf50; }
+        .alert-warning { background: #ff9800; }
+        .alert-error { background: #f44336; }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        @media (max-width: 1200px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Rocket Ground Support Equipment</h1>
+        <div class="status-indicator">
+            <span>Arduino Status:</span>
+            <div class="status-dot status-disconnected" id="arduinoStatus"></div>
+            <span id="connectionStatus">Disconnected</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h2>Mission Control</h2>
+            <div class="button-grid">
+                <button class="control-btn btn-ready" id="readyBtn">Ready</button>
+                <button class="control-btn btn-set" id="setBtn">Set</button>
+                <button class="control-btn btn-launch" id="launchBtn">Launch</button>
+                <button class="control-btn btn-emergency" id="emergencyBtn">EMERGENCY STOP</button>
+            </div>
+            
+            <div class="data-grid">
+                <div class="data-item">
+                    <div class="data-label">Mission Status</div>
+                    <div class="data-value" id="missionStatus">STANDBY</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">System Time</div>
+                    <div class="data-value" id="systemTime">--:--:--</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Uptime</div>
+                    <div class="data-value" id="uptime">00:00:00</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Data Points</div>
+                    <div class="data-value" id="dataPoints">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-time Data Display -->
+        <div class="data-display">
+            <h2>Live Data</h2>
+            <div class="data-grid">
+                <div class="data-item">
+                    <div class="data-label">Pressure (PSI)</div>
+                    <div class="data-value" id="pressure">0.00</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Temperature (°C)</div>
+                    <div class="data-value" id="temperature">0.00</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Flow Rate (L/min)</div>
+                    <div class="data-value" id="flowRate">0.00</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Voltage (V)</div>
+                    <div class="data-value" id="voltage">0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Display -->
+        <div class="chart-container">
+            <h2 class="chart-title">Real-time Data Visualization</h2>
+            <canvas id="dataChart" width="800" height="400"></canvas>
+        </div>
+
+        <!-- Recent Data Table -->
+        <div class="recent-data">
+            <h2>Recent Data Entries</h2>
+            <table class="data-table" id="recentDataTable">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Pressure</th>
+                        <th>Temperature</th>
+                        <th>Flow Rate</th>
+                        <th>Voltage</th>
+                    </tr>
+                </thead>
+                <tbody id="recentDataBody">
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Valve Controls -->
+        <div class="valve-controls">
+            <h2>Valve Control</h2>
+            <div class="valve-grid">
+                <div class="valve-item">
+                    <h3>Main Valve</h3>
+                    <div class="valve-toggle" id="mainValve"></div>
+                    <span id="mainValveStatus">CLOSED</span>
+                </div>
+                <div class="valve-item">
+                    <h3>Fuel Valve</h3>
+                    <div class="valve-toggle" id="fuelValve"></div>
+                    <span id="fuelValveStatus">CLOSED</span>
+                </div>
+                <div class="valve-item">
+                    <h3>Oxidizer Valve</h3>
+                    <div class="valve-toggle" id="oxidizerValve"></div>
+                    <span id="oxidizerValveStatus">CLOSED</span>
+                </div>
+                <div class="valve-item">
+                    <h3>Purge Valve</h3>
+                    <div class="valve-toggle" id="purgeValve"></div>
+                    <span id="purgeValveStatus">CLOSED</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Servo Controls -->
+        <div class="servo-controls">
+            <h2>Servo Control</h2>
+            <div class="valve-grid">
+                <div class="valve-item">
+                    <h3>Gimbal X</h3>
+                    <input type="range" class="servo-slider" id="gimbalX" min="-90" max="90" value="0">
+                    <span id="gimbalXValue">0°</span>
+                </div>
+                <div class="valve-item">
+                    <h3>Gimbal Y</h3>
+                    <input type="range" class="servo-slider" id="gimbalY" min="-90" max="90" value="0">
+                    <span id="gimbalYValue">0°</span>
+                </div>
+                <div class="valve-item">
+                    <h3>Throttle</h3>
+                    <input type="range" class="servo-slider" id="throttle" min="0" max="100" value="0">
+                    <span id="throttleValue">0%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Load Cell Display -->
+        <div class="load-cell-display">
+            <h2>Load Cell Data</h2>
+            <div class="load-cell-value">
+                <span id="loadCellValue">0.00</span>
+                <span class="unit">kg</span>
+            </div>
+            <div class="data-grid">
+                <div class="data-item">
+                    <div class="data-label">Max Load</div>
+                    <div class="data-value" id="maxLoad">0.00 kg</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Min Load</div>
+                    <div class="data-value" id="minLoad">0.00 kg</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let arduinoInterface = null;
+        let chart = null;
+        let dataPoints = 0;
+        let startTime = Date.now();
+        let missionStatus = 'STANDBY';
+        let recentData = [];
+        let maxDataPoints = 100;
+        let loadCellData = { current: 0, max: 0, min: 0 };
+
+        // Initialize the application
+        async function init() {
+            setupChart();
+            setupEventListeners();
+            updateSystemTime();
+            setInterval(updateSystemTime, 1000);
+            setInterval(updateUptime, 1000);
+            
+            // Initialize Arduino interface
+            arduinoInterface = new ArduinoInterface();
+            await arduinoInterface.init();
+            
+            // Set up data callbacks
+            arduinoInterface.onData((type, value) => {
+                handleArduinoData(type, value);
+            });
+        }
+
+        // Setup Chart.js for real-time data visualization
+        function setupChart() {
+            const ctx = document.getElementById('dataChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Pressure (PSI)',
+                            data: [],
+                            borderColor: '#00ff88',
+                            backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Temperature (°C)',
+                            data: [],
+                            borderColor: '#ff6b6b',
+                            backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Flow Rate (L/min)',
+                            data: [],
+                            borderColor: '#4ecdc4',
+                            backgroundColor: 'rgba(78, 205, 196, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Voltage (V)',
+                            data: [],
+                            borderColor: '#ffe66d',
+                            backgroundColor: 'rgba(255, 230, 109, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#ffffff'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#ffffff'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ffffff'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Control buttons
+            document.getElementById('readyBtn').addEventListener('click', () => setMissionStatus('READY'));
+            document.getElementById('setBtn').addEventListener('click', () => setMissionStatus('SET'));
+            document.getElementById('launchBtn').addEventListener('click', () => setMissionStatus('LAUNCH'));
+            document.getElementById('emergencyBtn').addEventListener('click', emergencyStop);
+
+            // Valve controls
+            document.querySelectorAll('.valve-toggle').forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    this.classList.toggle('active');
+                    const valveName = this.id;
+                    const isOpen = this.classList.contains('active');
+                    updateValveStatus(valveName, isOpen);
+                });
+            });
+
+            // Servo controls
+            document.getElementById('gimbalX').addEventListener('input', (e) => {
+                document.getElementById('gimbalXValue').textContent = e.target.value + '°';
+                sendServoCommand('gimbalX', parseInt(e.target.value));
+            });
+
+            document.getElementById('gimbalY').addEventListener('input', (e) => {
+                document.getElementById('gimbalYValue').textContent = e.target.value + '°';
+                sendServoCommand('gimbalY', parseInt(e.target.value));
+            });
+
+            document.getElementById('throttle').addEventListener('input', (e) => {
+                document.getElementById('throttleValue').textContent = e.target.value + '%';
+                sendServoCommand('throttle', parseInt(e.target.value));
+            });
+        }
+
+        // Handle incoming Arduino data
+        function handleArduinoData(type, value) {
+            const data = {
+                timestamp: new Date().toISOString(),
+                pressure: document.getElementById('pressure').textContent,
+                temperature: document.getElementById('temperature').textContent,
+                flowRate: document.getElementById('flowRate').textContent,
+                voltage: document.getElementById('voltage').textContent,
+                loadCell: document.getElementById('loadCellValue').textContent
+            };
+
+            // Update specific sensor value
+            switch (type) {
+                case 'pressure':
+                    data.pressure = value.toFixed(2);
+                    document.getElementById('pressure').textContent = value.toFixed(2);
+                    break;
+                case 'temperature':
+                    data.temperature = value.toFixed(2);
+                    document.getElementById('temperature').textContent = value.toFixed(2);
+                    break;
+                case 'flowRate':
+                    data.flowRate = value.toFixed(2);
+                    document.getElementById('flowRate').textContent = value.toFixed(2);
+                    break;
+                case 'voltage':
+                    data.voltage = value.toFixed(2);
+                    document.getElementById('voltage').textContent = value.toFixed(2);
+                    break;
+                case 'loadCell':
+                    data.loadCell = value.toFixed(2);
+                    document.getElementById('loadCellValue').textContent = value.toFixed(2);
+                    updateLoadCellData(value);
+                    break;
+                case 'valveStatus':
+                    updateValveStatusFromArduino(value);
+                    break;
+                case 'servoStatus':
+                    updateServoStatusFromArduino(value);
+                    break;
+            }
+
+            // Update display and chart
+            updateChart(data);
+            updateRecentData(data);
+            document.getElementById('dataPoints').textContent = ++dataPoints;
+        }
+
+        // Update valve status from Arduino
+        function updateValveStatusFromArduino(data) {
+            const valveName = data.valve;
+            const isOpen = data.state === 'open';
+            
+            const toggle = document.getElementById(valveName);
+            const status = document.getElementById(valveName + 'Status');
+            
+            if (toggle && status) {
+                toggle.classList.toggle('active', isOpen);
+                status.textContent = isOpen ? 'OPEN' : 'CLOSED';
+                status.style.color = isOpen ? '#00ff88' : '#ff4444';
+            }
+        }
+
+        // Update servo status from Arduino
+        function updateServoStatusFromArduino(data) {
+            const servoName = data.servo;
+            const value = data.value;
+            
+            switch (servoName) {
+                case 'gimbalX':
+                    document.getElementById('gimbalX').value = value;
+                    document.getElementById('gimbalXValue').textContent = value + '°';
+                    break;
+                case 'gimbalY':
+                    document.getElementById('gimbalY').value = value;
+                    document.getElementById('gimbalYValue').textContent = value + '°';
+                    break;
+                case 'throttle':
+                    document.getElementById('throttle').value = value;
+                    document.getElementById('throttleValue').textContent = value + '%';
+                    break;
+            }
+        }
+
+        // Update data display
+        function updateDataDisplay(data) {
+            document.getElementById('pressure').textContent = data.pressure;
+            document.getElementById('temperature').textContent = data.temperature;
+            document.getElementById('flowRate').textContent = data.flowRate;
+            document.getElementById('voltage').textContent = data.voltage;
+            document.getElementById('loadCellValue').textContent = data.loadCell;
+            document.getElementById('dataPoints').textContent = ++dataPoints;
+        }
+
+        // Update chart with new data
+        function updateChart(data) {
+            const now = new Date().toLocaleTimeString();
+            
+            chart.data.labels.push(now);
+            chart.data.datasets[0].data.push(parseFloat(data.pressure));
+            chart.data.datasets[1].data.push(parseFloat(data.temperature));
+            chart.data.datasets[2].data.push(parseFloat(data.flowRate));
+            chart.data.datasets[3].data.push(parseFloat(data.voltage));
+
+            // Keep only last 20 data points
+            if (chart.data.labels.length > 20) {
+                chart.data.labels.shift();
+                chart.data.datasets.forEach(dataset => dataset.data.shift());
+            }
+
+            chart.update('none');
+        }
+
+        // Update recent data table
+        function updateRecentData(data) {
+            recentData.unshift({
+                time: new Date().toLocaleTimeString(),
+                pressure: data.pressure,
+                temperature: data.temperature,
+                flowRate: data.flowRate,
+                voltage: data.voltage
+            });
+
+            // Keep only last 5 entries
+            if (recentData.length > 5) {
+                recentData.pop();
+            }
+
+            updateRecentDataTable();
+        }
+
+        // Update recent data table HTML
+        function updateRecentDataTable() {
+            const tbody = document.getElementById('recentDataBody');
+            tbody.innerHTML = '';
+
+            recentData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.time}</td>
+                    <td>${row.pressure}</td>
+                    <td>${row.temperature}</td>
+                    <td>${row.flowRate}</td>
+                    <td>${row.voltage}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Update load cell data
+        function updateLoadCellData(value) {
+            const numValue = parseFloat(value);
+            loadCellData.current = numValue;
+            
+            if (numValue > loadCellData.max) {
+                loadCellData.max = numValue;
+                document.getElementById('maxLoad').textContent = numValue.toFixed(2) + ' kg';
+            }
+            
+            if (numValue < loadCellData.min || loadCellData.min === 0) {
+                loadCellData.min = numValue;
+                document.getElementById('minLoad').textContent = numValue.toFixed(2) + ' kg';
+            }
+        }
+
+        // Update valve status
+        function updateValveStatus(valveName, isOpen) {
+            const statusElement = document.getElementById(valveName + 'Status');
+            statusElement.textContent = isOpen ? 'OPEN' : 'CLOSED';
+            statusElement.style.color = isOpen ? '#00ff88' : '#ff4444';
+            
+            // Send command to Arduino
+            sendValveCommand(valveName, isOpen);
+        }
+
+        // Send valve command to Arduino
+        function sendValveCommand(valveName, isOpen) {
+            if (arduinoInterface) {
+                if (isOpen) {
+                    arduinoInterface.openValve(valveName);
+                } else {
+                    arduinoInterface.closeValve(valveName);
+                }
+                showAlert(`Valve ${valveName} ${isOpen ? 'opened' : 'closed'}`, 'success');
+            }
+        }
+
+        // Send servo command to Arduino
+        function sendServoCommand(servoName, value) {
+            if (arduinoInterface) {
+                arduinoInterface.setServoPosition(servoName, value);
+            }
+        }
+
+        // Set mission status
+        function setMissionStatus(status) {
+            missionStatus = status;
+            document.getElementById('missionStatus').textContent = status;
+            
+            // Send status to Arduino
+            if (arduinoInterface) {
+                arduinoInterface.setMissionStatus(status);
+            }
+            
+            // Update button states
+            const buttons = ['readyBtn', 'setBtn', 'launchBtn'];
+            buttons.forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                btn.style.opacity = '0.5';
+                btn.disabled = true;
+            });
+            
+            // Enable next button in sequence
+            if (status === 'READY') {
+                document.getElementById('setBtn').style.opacity = '1';
+                document.getElementById('setBtn').disabled = false;
+            } else if (status === 'SET') {
+                document.getElementById('launchBtn').style.opacity = '1';
+                document.getElementById('launchBtn').disabled = false;
+            }
+            
+            showAlert(`Mission status: ${status}`, 'success');
+        }
+
+        // Emergency stop
+        function emergencyStop() {
+            missionStatus = 'EMERGENCY';
+            document.getElementById('missionStatus').textContent = 'EMERGENCY STOP';
+            document.getElementById('missionStatus').style.color = '#ff4444';
+            
+            // Send emergency stop to Arduino
+            if (arduinoInterface) {
+                arduinoInterface.emergencyStop();
+            }
+            
+            // Close all valves
+            document.querySelectorAll('.valve-toggle').forEach(toggle => {
+                toggle.classList.remove('active');
+                const valveName = toggle.id;
+                updateValveStatus(valveName, false);
+            });
+            
+            // Reset servos
+            document.getElementById('gimbalX').value = 0;
+            document.getElementById('gimbalY').value = 0;
+            document.getElementById('throttle').value = 0;
+            document.getElementById('gimbalXValue').textContent = '0°';
+            document.getElementById('gimbalYValue').textContent = '0°';
+            document.getElementById('throttleValue').textContent = '0%';
+            
+            showAlert('EMERGENCY STOP ACTIVATED!', 'error');
+        }
+
+        // Update connection status
+        function updateConnectionStatus(connected) {
+            const statusDot = document.getElementById('arduinoStatus');
+            const statusText = document.getElementById('connectionStatus');
+            
+            if (connected) {
+                statusDot.className = 'status-dot status-connected';
+                statusText.textContent = 'Connected';
+            } else {
+                statusDot.className = 'status-dot status-disconnected';
+                statusText.textContent = 'Disconnected';
+            }
+        }
+
+        // Update connection status from Arduino interface
+        function updateArduinoConnectionStatus() {
+            if (arduinoInterface) {
+                const status = arduinoInterface.getConnectionStatus();
+                updateConnectionStatus(status.connected);
+            }
+        }
+
+        // Update system time
+        function updateSystemTime() {
+            const now = new Date();
+            document.getElementById('systemTime').textContent = now.toLocaleTimeString();
+        }
+
+        // Update uptime
+        function updateUptime() {
+            const uptime = Date.now() - startTime;
+            const hours = Math.floor(uptime / 3600000);
+            const minutes = Math.floor((uptime % 3600000) / 60000);
+            const seconds = Math.floor((uptime % 60000) / 1000);
+            
+            document.getElementById('uptime').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Show alert message
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            document.body.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 3000);
+        }
+
+        // Initialize the application when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
