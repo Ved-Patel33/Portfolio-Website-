@@ -628,6 +628,20 @@
   .project-link:hover {
     color: var(--secondary-blue);
   }
+
+  /* -----------------------------------
+     SECTION INTRO STYLES
+  ----------------------------------- */
+  .section-intro {
+    text-align: center;
+    font-size: 1.1rem;
+    color: var(--medium-grey);
+    margin-bottom: 3rem;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+  }
   
   /* -----------------------------------
      PROJECTS GRID
@@ -666,6 +680,35 @@
   
   .project-card:hover .project-image img {
     transform: scale(1.05);
+  }
+
+  .project-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(30, 58, 138, 0.8);
+    color: var(--white);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .project-card:hover .project-overlay {
+    opacity: 1;
+  }
+
+  .project-overlay i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .project-overlay span {
+    font-weight: 600;
   }
   
   .project-content {
